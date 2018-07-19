@@ -3,6 +3,9 @@
 // How many leds in your strip?
 #define NUM_LEDS 90
 
+#define SENSOR_PIN      A0
+#define CORRECTION_PIN  A7
+
 // For led chips like Neopixels, which have a data line, ground, and power, you just
 // need to define DATA_PIN.  For led chipsets that are SPI based (four wires - data, clock,
 // ground, and power), like the LPD8806 define both DATA_PIN and CLOCK_PIN
@@ -11,8 +14,21 @@
 #define BRIGHTNESS  30
 #define HELLO_LED 13
 
+#define RUNNINGTIME        15000   // the game runnig time /milli secounds 
 
+#define SYSTEM_CYCLE_TIME  250    // the main loop delay 
 
+#define YELLOW_TIME        3000   
+#define ORANGE_TIME        2000   
+#define RED_TIME           1000   
+#define BLACK_TIME         5000   
+
+#define STOP_FADE_IN_OUT   100
+
+#define DISABLED_DELAY     10000 // pause to start need constnat input to start.
+
+#define SENSOR_MIN_LIMIT   2
+ 
 
 
 // Define the array of leds
@@ -23,10 +39,10 @@ int peek_reset = 20; // sec to reset the max peek.
 
 int peek_reset_counter = 0;
 
-
+bool valid_level = false;
 int mi = 0;
 
-CRGBPalette256 currentPalette;
+CRGBPalette256 currentPalette; // the colour palet of the led strip.
 
 void setup() { 
       Serial.begin(9600);
@@ -41,7 +57,8 @@ void setup() {
        
 }
 
-
+//uint32_t color_section_1 = 0xFF0000;
+//const char* color_section_1 = "CRGB::Red";
 const palette()
 {
     
@@ -172,6 +189,8 @@ void dim( int hight){
   int m = NUM_LEDS;//6;
   int mh = max_hight;
 
+   palette();// recall color palette
+
   /*
   for (i = 0 ; i << l ; i++){
      leds[i-1] = currentPalette[i-1];
@@ -267,6 +286,60 @@ void flash(){
 }
 
 
+// stop function;
+bool stopEnabled = false;
+int stopCounter = 0;
+int s = 0;
+
+void stopFunction(){
+  
+
+   Serial.println("STOP ON ON ON ON");
+   
+   while(s <= NUM_LEDS){     
+      leds[s-1] = CRGB::Yellow;
+      s++; 
+      delay(STOP_FADE_IN_OUT);
+      FastLED.show();   
+    }
+  
+  //FastLED.show();
+  
+   delay(YELLOW_TIME);
+
+  
+  while(s >= 0){     
+      leds[s-1] = CRGB::Orange;
+      s--; 
+      delay(STOP_FADE_IN_OUT);
+      FastLED.show(); 
+    }
+
+  s = 0;
+  
+  delay(ORANGE_TIME);
+
+
+  while(s <= NUM_LEDS){     
+      leds[s-1] = CRGB::Red;
+      s++; 
+      delay(STOP_FADE_IN_OUT);
+      FastLED.show();   
+    }
+
+
+  delay(RED_TIME);
+  
+ while(s >= 0){     
+      leds[s-1] = CRGB::Black;
+      s--; 
+      delay(STOP_FADE_IN_OUT);
+      FastLED.show(); 
+    }
+
+  s = 0; 
+  delay(BLACK_TIME);
+}
 
 /** */
 void loop() { 
@@ -280,20 +353,51 @@ void loop() {
   //increaseReset();
 
   peek_reset_counter+=1;
-  int sensorValue = analogRead(A0);
+  int sensorCorectionValue = analogRead(CORRECTION_PIN);       // A0 
+  int sensorValue = analogRead(SENSOR_PIN);           // A7 swop for test perpose 
+
+  
   
   // print out the value you read:
   //Serial.println(sensorValue);
 
-  level = sensorValue/11.33;
+  if(sensorCorectionValue == 0)
+    level = (sensorValue/11.33);//*(sensorCorectionValue*0.1);
+  else
+    level = (sensorValue/11.33)*(sensorCorectionValue*0.01);
   ///dim(level);
-  Serial.print("LEVEL:");
-  Serial.println(level);
-  
-    dim(level);
+  //Serial.print("LEVEL:");
+  //Serial.println(level);
 
-  Serial.print("LEVEL_MAX: ");
-  Serial.println(max_hight);
+  if (stopEnabled){
+     // reset 
+     stopCounter = 0;
+     stopFunction();
+     stopEnabled = false;
+
+    int sensor_tmp = 0;
+    while ( sensor_tmp <= SENSOR_MIN_LIMIT){
+      delay(1000);
+      sensor_tmp = analogRead(SENSOR_PIN);
+     
+    }
+    delay(DISABLED_DELAY);
+     
+  }
+  else{
+    dim(level);
+    stopCounter++; // add one to the play time
+    Serial.print("STOP:  ");
+     Serial.println(stopCounter);
+    if (stopCounter > (RUNNINGTIME/ SYSTEM_CYCLE_TIME))
+      stopEnabled = true;
+  }
+
+  //dim(level);
+  
+
+  //Serial.print("LEVEL_MAX: ");
+  //Serial.println(max_hight);
   FastLED.show();
     
   
