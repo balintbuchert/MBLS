@@ -209,9 +209,9 @@ void dim( int hight){
      
   //FastLED.show(); 
 
-  if (level >= m-15)        
-    flash();
-  else{   
+  //if (level >= m-15)        
+    //flash();
+  //else{   
     for (i = 0 ; i <= l ;i++){
       leds[i-1] = currentPalette[i-1];
      
@@ -221,7 +221,7 @@ void dim( int hight){
       leds[i-1] = CRGB::Black; ; 
    
     }
-  }
+ // }// end else
   if(level >= mh){
     max_hight = level;
     peek_reset_counter = 0;
@@ -271,7 +271,6 @@ void flash(){
       f++;    
     }
     flash_state = false;
-    //FastLED.show();
   } // end if
  else{
   f = 0;
@@ -280,64 +279,73 @@ void flash(){
       f++;
   }
   flash_state = true;
-  //FastLED.show();
  }// end else 
   
 }
 
 
 // stop function;
+
 bool stopEnabled = false;
 int stopCounter = 0;
 int s = 0;
 
 void stopFunction(){
   
-
-   Serial.println("STOP ON ON ON ON");
+   Serial.println("STOP");
    
-   while(s <= NUM_LEDS){     
+   //s = 0;  // from down 
+   s = NUM_LEDS ;// from up 
+   while(s >= 0){ 
+   //while(s <= NUM_LEDS){     // down
       leds[s-1] = CRGB::Yellow;
-      s++; 
+      //s++; //down
+      s--;   // up
       delay(STOP_FADE_IN_OUT);
       FastLED.show();   
     }
   
-  //FastLED.show();
-  
-   delay(YELLOW_TIME);
+  delay(YELLOW_TIME);
 
-  
-  while(s >= 0){     
+  //s = 0; 
+  s = NUM_LEDS; // from up 
+  while(s >= 0){ 
+  //while(s <= NUM_LEDS){         
       leds[s-1] = CRGB::Orange;
-      s--; 
+      s--;
+      //s++; 
       delay(STOP_FADE_IN_OUT);
       FastLED.show(); 
     }
-
-  s = 0;
   
   delay(ORANGE_TIME);
 
-
-  while(s <= NUM_LEDS){     
+  //s = 0;
+  s = NUM_LEDS; // from up  
+  //while(s <= NUM_LEDS){  
+  while(s >= 0){    
       leds[s-1] = CRGB::Red;
-      s++; 
+      //s++;
+      s--; 
       delay(STOP_FADE_IN_OUT);
       FastLED.show();   
     }
 
-
   delay(RED_TIME);
   
- while(s >= 0){     
+  //s = 0;
+  s = NUM_LEDS; // from up   
+  while(s >= 0){
+  // while(s <= NUM_LEDS){         
       leds[s-1] = CRGB::Black;
-      s--; 
+      s--;
+      //s++; 
       delay(STOP_FADE_IN_OUT);
       FastLED.show(); 
     }
 
-  s = 0; 
+  //s = 0; 
+  s = NUM_LEDS;
   delay(BLACK_TIME);
 }
 
@@ -345,7 +353,6 @@ void stopFunction(){
 void loop() { 
     
   // Turn the LED on, then pause
-
 
   Serial.println("live");
   //helloWolrd();
@@ -356,18 +363,12 @@ void loop() {
   int sensorCorectionValue = analogRead(CORRECTION_PIN);       // A0 
   int sensorValue = analogRead(SENSOR_PIN);           // A7 swop for test perpose 
 
-  
-  
-  // print out the value you read:
-  //Serial.println(sensorValue);
 
   if(sensorCorectionValue == 0)
     level = (sensorValue/11.33);//*(sensorCorectionValue*0.1);
   else
     level = (sensorValue/11.33)*(sensorCorectionValue*0.01);
-  ///dim(level);
-  //Serial.print("LEVEL:");
-  //Serial.println(level);
+
 
   if (stopEnabled){
      // reset 
@@ -393,24 +394,6 @@ void loop() {
       stopEnabled = true;
   }
 
-  //dim(level);
-  
-
-  //Serial.print("LEVEL_MAX: ");
-  //Serial.println(max_hight);
   FastLED.show();
-    
-  
-  
-  /*int u = 0;
-  
-  while(u <= 6){
-  dim(u);
-  FastLED.show();
-  Serial.println(u);
-  delay(500);
-  u++;
-  }
-*/
- 
+   
 }
