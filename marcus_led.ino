@@ -1,46 +1,62 @@
+/***
+ * Kineffect Bike Power LED Tower 
+ * 
+ * Programed by Balint Buchert 2018
+ * buchertbalint@gmail.com
+ * Verison 0.1
+ * Year 2018
+ * 
+ */
+
 #include <FastLED.h>
 
-// How many leds in your strip?
 #define NUM_LEDS 90
 
-#define SENSOR_PIN      A0
-#define CORRECTION_PIN  A7
+#define SENSOR_PIN      A7
+#define CORRECTION_PIN  A0
 
-// For led chips like Neopixels, which have a data line, ground, and power, you just
-// need to define DATA_PIN.  For led chipsets that are SPI based (four wires - data, clock,
-// ground, and power), like the LPD8806 define both DATA_PIN and CLOCK_PIN
 #define DATA_PIN 5
-//#define CLOCK_PIN 13
-#define BRIGHTNESS  30
+
+#define BRIGHTNESS  255  // 0-255
+
 #define HELLO_LED 13
 
-#define RUNNINGTIME        15000   // the game runnig time /milli secounds 
 
-#define SYSTEM_CYCLE_TIME  250    // the main loop delay 
+// SYSTEM RUNNIG TIME
+#define SYSTEM_CYCLE_TIME  250     // the main loop delay , also flash duration, 
+#define RUNNINGTIME        45000   // the game runnig time /milli secounds 
+                                   // phisical time Runnigtime / syscel time,   60s = 15000 / 250 
 
-#define YELLOW_TIME        3000   
-#define ORANGE_TIME        2000   
-#define RED_TIME           1000   
-#define BLACK_TIME         5000   
+// STOP FUNCTION LEDS:
+#define STOP_FADE_IN_OUT   100    // STOP function colour run down, millisce / LED step
 
-#define STOP_FADE_IN_OUT   100
+#define YELLOW_TIME        3000   // STOP function Yellow stay on time between colour changes 
+#define ORANGE_TIME        2000   // STOP function Orange stay on time between colour changes 
+#define RED_TIME           1000   // STOP function Red stay on time between colour changes 
+#define BLACK_TIME         2000   // STOP function Black stay on time between colour changes 
 
-#define DISABLED_DELAY     10000 // pause to start need constnat input to start.
+#define DISABLED_DELAY     3000  // Pause STOP how long to take to restart.
 
-#define SENSOR_MIN_LIMIT   2
+#define SENSOR_MIN_LIMIT   2      // limit of the minimum pedalling to restart the system (new race limit) 0-1024,
  
+#define PEEK_RESET         20    // Peek hold time /sec
+
+#define SENSITIVITY_ADJUSTMENT  10.33 // origin was 11.33
 
 
 // Define the array of leds
 CRGB leds[NUM_LEDS];
 int level = 0; // led level;
 int max_hight = 0;
-int peek_reset = 20; // sec to reset the max peek. 
+
+int peek_reset = PEEK_RESET; // sec to reset the max peek. 
 
 int peek_reset_counter = 0;
 
 bool valid_level = false;
 int mi = 0;
+
+bool startState = false; // the cylcling started
 
 CRGBPalette256 currentPalette; // the colour palet of the led strip.
 
@@ -189,7 +205,7 @@ void dim( int hight){
   int m = NUM_LEDS;//6;
   int mh = max_hight;
 
-   palette();// recall color palette
+  palette();// recall color palette
 
   /*
   for (i = 0 ; i << l ; i++){
@@ -199,19 +215,14 @@ void dim( int hight){
   //if (false)
   delay(100);
   for (i = l+1 ; i << m+1 ; i++){
-     leds[i-1] = CRGB::Black;
-
- 
+     leds[i-1] = CRGB::Black; 
   }
   */
 
-   //if(peek_reset_counter >> peek_reset){
-     
-  //FastLED.show(); 
 
-  //if (level >= m-15)        
-    //flash();
-  //else{   
+  if (level >= m-15)        
+    flash();
+  else{   
     for (i = 0 ; i <= l ;i++){
       leds[i-1] = currentPalette[i-1];
      
@@ -221,7 +232,7 @@ void dim( int hight){
       leds[i-1] = CRGB::Black; ; 
    
     }
- // }// end else
+  }// end else
   if(level >= mh){
     max_hight = level;
     peek_reset_counter = 0;
@@ -349,6 +360,7 @@ void stopFunction(){
   delay(BLACK_TIME);
 }
 
+
 /** */
 void loop() { 
     
@@ -360,40 +372,49 @@ void loop() {
   //increaseReset();
 
   peek_reset_counter+=1;
+  
   int sensorCorectionValue = analogRead(CORRECTION_PIN);       // A0 
-  int sensorValue = analogRead(SENSOR_PIN);           // A7 swop for test perpose 
+  int sensorValue = analogRead(SENSOR_PIN);                    // A7 swop for test perpose 
+ 
+  if ((sensorValue >=  SENSOR_MIN_LIMIT) && !startState)
+      startState = true;
 
-
-  if(sensorCorectionValue == 0)
-    level = (sensorValue/11.33);//*(sensorCorectionValue*0.1);
-  else
-    level = (sensorValue/11.33)*(sensorCorectionValue*0.01);
-
-
-  if (stopEnabled){
-     // reset 
-     stopCounter = 0;
-     stopFunction();
-     stopEnabled = false;
-
-    int sensor_tmp = 0;
-    while ( sensor_tmp <= SENSOR_MIN_LIMIT){
-      delay(1000);
-      sensor_tmp = analogRead(SENSOR_PIN);
-     
+  if(startState){
+    if (stopEnabled){
+       // reset 
+       stopCounter = 0;
+       stopFunction();
+       stopEnabled = false;
+       startState = false;
+  
+      int sensor_tmp = 0;
+       while ( sensor_tmp <= SENSOR_MIN_LIMIT){
+        delay(1000);
+        sensor_tmp = analogRead(SENSOR_PIN);       
+      }
+      
+      delay(DISABLED_DELAY);
+       
     }
-    delay(DISABLED_DELAY);
-     
-  }
-  else{
-    dim(level);
-    stopCounter++; // add one to the play time
-    Serial.print("STOP:  ");
-     Serial.println(stopCounter);
-    if (stopCounter > (RUNNINGTIME/ SYSTEM_CYCLE_TIME))
-      stopEnabled = true;
-  }
+    else{
+      
+       if(sensorCorectionValue == 0)
+          level = (sensorValue/SENSITIVITY_ADJUSTMENT);//*(sensorCorectionValue*0.1);
+       else
+          level = (sensorValue/SENSITIVITY_ADJUSTMENT)*(sensorCorectionValue*0.01);
+          
+      dim(level);
+      
+      stopCounter++; // add one to the play time
+      
+      Serial.print("STOP:  ");
+      Serial.println(stopCounter);
+       
+      if (stopCounter > (RUNNINGTIME/ SYSTEM_CYCLE_TIME))
+         stopEnabled = true;
+    }
 
   FastLED.show();
    
+  }
 }
